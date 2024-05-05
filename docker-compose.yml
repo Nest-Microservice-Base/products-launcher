@@ -1,0 +1,80 @@
+version: '3.7'
+
+
+services:
+
+  # Configuratio by nats server
+  nats-server:
+    image: nats:latest
+    ports:
+      - "8222:8222"
+
+  # Configuration by client-gateway 
+  client-gateway:
+    # Directory project
+    build: ./client-gateway
+    ports:
+    # Read port from file .env
+      - "${CLIENT_GATEWAY_PORT}:3000"
+    volumes:
+      - ./client-gateway/src:/usr/app/src
+    command: npm run start:dev
+    environment:
+      - PORT=3000
+      # Replace localhost by name of server nats-server
+      - NATS_SERVERS=nats://nats-server:4222
+    depends_on:
+      - nats-server
+
+  # Configuration by products-ms
+  products-ms:
+    # Directory project
+    build: ./products-ms
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./products-ms/src:/usr/app/src
+    command: npm run start:dev
+    environment:
+      - PORT=3001
+      # Replace localhost by name of server nats-server
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=file:./dev.db
+    depends_on:
+      - nats-server
+
+  # Configuration by orders-ms 
+  orders-ms:
+    # Directory project
+    build: ./orders-ms
+    ports:
+      - "3002:3002"
+    restart: always  
+    volumes:
+      - ./orders-ms/src:/usr/app/src
+    command: npm run start:dev
+    environment:
+      - PORT=3002
+      # Replace localhost by name of server nats-server
+      - NATS_SERVERS=nats://nats-server:4222
+      # Replace @ localhost by name of server orders-db
+      - DATABASE_URL=postgresql://postgres:123456@orders-db:5432/ordersdb?schema=public
+    # Dependencies another projects
+    depends_on:
+      - orders-db
+      - nats-server
+
+  # Configuration database order-db
+  orders-db:
+    container_name: orders_database
+    image: postgres:16.2
+    restart: always
+    volumes:
+    # Use folder internal postgresql
+      - ./orders-ms/postgres:/var/lib/postgresql/data
+    ports:
+      - 5440:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=ordersdb    
