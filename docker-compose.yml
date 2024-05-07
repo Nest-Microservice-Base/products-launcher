@@ -11,7 +11,7 @@ services:
 
   # Configuration by client-gateway 
   client-gateway:
-    # Directory project
+    # Directory project, requiered dockerfile
     build: ./client-gateway
     ports:
     # Read port from file .env
@@ -28,7 +28,7 @@ services:
 
   # Configuration by products-ms
   products-ms:
-    # Directory project
+    # Directory project, requiered dockerfile
     build: ./products-ms
     ports:
       - "3001:3001"
@@ -45,7 +45,7 @@ services:
 
   # Configuration by orders-ms 
   orders-ms:
-    # Directory project
+    # Directory project, requiered dockerfile
     build: ./orders-ms
     ports:
       - "3002:3002"
@@ -77,4 +77,32 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=123456
-      - POSTGRES_DB=ordersdb    
+      - POSTGRES_DB=ordersdb
+
+# ===============================
+# ==== Payments Microservice ====
+# ===============================
+
+  # Configuration by payments-ms
+  payments-ms:
+    container_name: payments-ms
+    # Directory project, requiered dockerfile
+    build: ./payments-ms
+    ports:
+      # Port for call endpoint
+      - "${PORT_PAYMENTS_MS}:${PORT_PAYMENTS_MS}" 
+    restart: always
+    volumes:
+      - ./payments-ms/src:/usr/app/src
+    command: npm run start:dev
+    environment:
+      - PORT=${PORT_PAYMENTS_MS}
+      # Replace localhost by name of server nats-server
+      - NATS_SERVERS=nats://nats-server:4222
+      - STRIPE_SECRET=${STRIPE_SECRET}
+      - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL}
+      - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL}
+      - STRIPE_ENDPOINT_SECRET=${STRIPE_ENDPOINT_SECRET}
+    # Dependencies another projects
+    depends_on:
+      - nats-server
