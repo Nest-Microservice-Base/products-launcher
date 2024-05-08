@@ -106,3 +106,26 @@ services:
     # Dependencies another projects
     depends_on:
       - nats-server
+
+# ============================
+# ==== Auth Microservices ====
+# ============================
+
+  # Configuration by auth-ms
+  auth-ms:
+    # Directory project, requiered dockerfile
+    build: ./auth-ms
+    ports:
+      # Port for call endpoint
+      - "${PORT_AUTH_MS}:${PORT_AUTH_MS}" 
+    restart: always
+    volumes:
+      - ./auth-ms/src:/usr/app/src
+    command: npm run start:dev
+    environment:
+      - PORT=${PORT_AUTH_MS}
+      # Replace localhost by name of server nats-server
+      - NATS_SERVERS=nats://nats-server:4222
+    # Dependencies another projects
+    depends_on:
+      - nats-server
