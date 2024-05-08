@@ -17,7 +17,7 @@ services:
     # Read port from file .env
       - "${CLIENT_GATEWAY_PORT}:3000"
     volumes:
-      - ./client-gateway/src:/usr/app/src
+      - ./client-gateway/src:/usr/src/app/src
     command: npm run start:dev
     environment:
       - PORT=3000
@@ -33,7 +33,7 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - ./products-ms/src:/usr/app/src
+      - ./products-ms/src:/usr/src/app/src
     command: npm run start:dev
     environment:
       - PORT=3001
@@ -51,7 +51,7 @@ services:
       - "3002:3002"
     restart: always  
     volumes:
-      - ./orders-ms/src:/usr/app/src
+      - ./orders-ms/src:/usr/src/app/src
     command: npm run start:dev
     environment:
       - PORT=3002
@@ -93,7 +93,7 @@ services:
       - "${PORT_PAYMENTS_MS}:${PORT_PAYMENTS_MS}" 
     restart: always
     volumes:
-      - ./payments-ms/src:/usr/app/src
+      - ./payments-ms/src:/usr/src/app/src
     command: npm run start:dev
     environment:
       - PORT=${PORT_PAYMENTS_MS}
@@ -120,7 +120,7 @@ services:
       - "${PORT_AUTH_MS}:${PORT_AUTH_MS}" 
     restart: always
     volumes:
-      - ./auth-ms/src:/usr/app/src
+      - ./auth-ms/src:/usr/src/app/src
     command: npm run start:dev
     environment:
       - PORT=${PORT_AUTH_MS}
