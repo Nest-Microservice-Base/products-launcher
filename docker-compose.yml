@@ -126,6 +126,8 @@ services:
       - PORT=${PORT_AUTH_MS}
       # Replace localhost by name of server nats-server
       - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${AUTH_DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
     # Dependencies another projects
     depends_on:
       - nats-server
