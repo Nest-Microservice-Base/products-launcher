@@ -3,9 +3,18 @@ version: '3.7'
 
 services:
 
+# ===========================
+# ======= Nats Server =======
+# ===========================
+
   # Configuratio by nats server
   nats-server:
     image: nats:latest
+
+
+# ============================
+# ====== Client Gateway ======
+# ============================
 
   # Configuration by client-gateway 
   client-gateway:
@@ -22,110 +31,99 @@ services:
       # Replace localhost by name of server nats-server
       - NATS_SERVERS=nats://nats-server:4222
     depends_on:
+      - nats-server     
+
+
+# ===========================
+# ==== Auth Microservice ====
+# ===========================
+
+  # Configuration by auth-ms
+  auth-ms:
+    # Directory project, requiered dockerfile
+    build:
+      context: ./auth-ms
+      dockerfile: dockerfile.prod
+    image: auth-ms-prod
+    #restart: always
+    environment:
+      - PORT=${PORT_AUTH_MS}
+      # Replace localhost by name of server nats-server
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${AUTH_DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+    # Dependencies another projects
+    depends_on:
+      - nats-server      
+
+
+# ===============================
+# ==== Products Microservice ====
+# ===============================
+
+  # Configuration by products-ms
+  products-ms:
+    # Directory project, requiered dockerfile
+    build:
+      context: ./products-ms
+      dockerfile: dockerfile.prod
+    image: products-ms-prod
+    environment:
+      - PORT=3001
+      # Replace localhost by name of server nats-server
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=file:./dev.db
+    depends_on:
       - nats-server
 
-#   # Configuration by products-ms
-#   products-ms:
-#     # Directory project, requiered dockerfile
-#     build: ./products-ms
-#     ports:
-#       - "3001:3001"
-#     volumes:
-#       - ./products-ms/src:/usr/src/app/src
-#     command: npm run start:dev
-#     environment:
-#       - PORT=3001
-#       # Replace localhost by name of server nats-server
-#       - NATS_SERVERS=nats://nats-server:4222
-#       - DATABASE_URL=file:./dev.db
-#     depends_on:
-#       - nats-server
 
-#   # Configuration by orders-ms 
-#   orders-ms:
-#     # Directory project, requiered dockerfile
-#     build: ./orders-ms
-#     ports:
-#       - "3002:3002"
-#     restart: always  
-#     volumes:
-#       - ./orders-ms/src:/usr/src/app/src
-#     command: npm run start:dev
-#     environment:
-#       - PORT=3002
-#       # Replace localhost by name of server nats-server
-#       - NATS_SERVERS=nats://nats-server:4222
-#       # Replace @ localhost by name of server orders-db
-#       - DATABASE_URL=postgresql://postgres:123456@orders-db:5432/ordersdb?schema=public
-#     # Dependencies another projects
-#     depends_on:
-#       - orders-db
-#       - nats-server
+# ============================
+# ==== Order Microservice ====
+# ============================
 
-#   # Configuration database order-db
-#   orders-db:
-#     container_name: orders_database
-#     image: postgres:16.2
-#     #restart: always
-#     volumes:
-#     # Use folder internal postgresql
-#       - ./orders-ms/postgres:/var/lib/postgresql/data
-#     ports:
-#       - 5440:5432
-#     environment:
-#       - POSTGRES_USER=postgres
-#       - POSTGRES_PASSWORD=123456
-#       - POSTGRES_DB=ordersdb
+  # Configuration by orders-ms 
+  orders-ms:
+    # Directory project, requiered dockerfile
+    build:
+      context: ./orders-ms
+      dockerfile: dockerfile.prod
+      # Se envia al docker file como argumento
+      args:
+        - ORDERS_DATABASE_URL=${ORDERS_DATABASE_URL}
+    image: orders-ms-prod
+    environment:
+      - PORT=3002
+      # Replace localhost by name of server nats-server
+      - NATS_SERVERS=nats://nats-server:4222
+      # Replace @ localhost by name of server orders-db
+      - DATABASE_URL=${ORDERS_DATABASE_URL}
+    # Dependencies another projects
+    depends_on:
+      - nats-server
 
-# # ===============================
-# # ==== Payments Microservice ====
-# # ===============================
+# ===============================
+# ==== Payments Microservice ====
+# ===============================
 
-#   # Configuration by payments-ms
-#   payments-ms:
-#     container_name: payments-ms
-#     # Directory project, requiered dockerfile
-#     build: ./payments-ms
-#     ports:
-#       # Port for call endpoint
-#       - "${PORT_PAYMENTS_MS}:${PORT_PAYMENTS_MS}" 
-#     restart: always
-#     volumes:
-#       - ./payments-ms/src:/usr/src/app/src
-#     command: npm run start:dev
-#     environment:
-#       - PORT=${PORT_PAYMENTS_MS}
-#       # Replace localhost by name of server nats-server
-#       - NATS_SERVERS=nats://nats-server:4222
-#       - STRIPE_SECRET=${STRIPE_SECRET}
-#       - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL}
-#       - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL}
-#       - STRIPE_ENDPOINT_SECRET=${STRIPE_ENDPOINT_SECRET}
-#     # Dependencies another projects
-#     depends_on:
-#       - nats-server
-
-# # ============================
-# # ==== Auth Microservices ====
-# # ============================
-
-#   # Configuration by auth-ms
-#   auth-ms:
-#     # Directory project, requiered dockerfile
-#     build: ./auth-ms
-#     ports:
-#       # Port for call endpoint
-#       - "${PORT_AUTH_MS}:${PORT_AUTH_MS}" 
-#     restart: always
-#     volumes:
-#       - ./auth-ms/src:/usr/src/app/src
-#     command: npm run start:dev
-#     environment:
-#       - PORT=${PORT_AUTH_MS}
-#       # Replace localhost by name of server nats-server
-#       - NATS_SERVERS=nats://nats-server:4222
-#       - DATABASE_URL=${AUTH_DATABASE_URL}
-#       - JWT_SECRET=${JWT_SECRET}
-#     # Dependencies another projects
-#     depends_on:
-#       - nats-server
+  # Configuration by payments-ms
+  payments-ms:
+    # Directory project, requiered dockerfile
+    build: 
+      context: ./payments-ms
+      dockerfile: dockerfile.prod
+    image: payments-ms-prod
+    ports:
+      # Port for call endpoint
+      - "${PORT_PAYMENTS_MS}:${PORT_PAYMENTS_MS}" 
+    #restart: always
+    environment:
+      - PORT=${PORT_PAYMENTS_MS}
+      # Replace localhost by name of server nats-server
+      - NATS_SERVERS=nats://nats-server:4222
+      - STRIPE_SECRET=${STRIPE_SECRET}
+      - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL}
+      - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL}
+      - STRIPE_ENDPOINT_SECRET=${STRIPE_ENDPOINT_SECRET}
+    # Dependencies another projects
+    depends_on:
+      - nats-server
